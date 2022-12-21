@@ -1,6 +1,7 @@
 class MyPromise {
   state = "pending"; // インスタンスの初期状態はpending
   valueOnConclude = null; // concluderに渡された値を格納
+  reservedFuncs = null; // thenで実行予約された関数群
 
   // constructor ==============================
   constructor(executor) {
@@ -42,6 +43,11 @@ class MyPromise {
     if (this.state === "rejected") {
       onRejectedCB(this.valueOnConclude);
     }
+    // then実行時、呼び出し元インスタンスがpendingだった場合reservedFuncsに登録しておく
+    this.reservedFuncs = {
+      onFulfilledCB,
+      onRejectedCB,
+    };
   }
   // catch ==============================
   catch(onRejectedCB) { }
