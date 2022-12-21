@@ -16,10 +16,18 @@ class MyPromise {
     // 予約されたCBを実行
     const runReservedCB = (fate) => {
       if (!this.reservedFuncs) return;
-      // fateに合わせてコールバックを実行する
-      this.reservedFuncs[
-        fate === "fulfilled" ? "onFulfilledCB" : "onRejectedCB"
-      ](this.valueOnConclude);
+      try {
+        // fateに合わせてコールバックを実行する
+        const resultFromCB = this.reservedFuncs[
+          fate === "fulfilled" ? "onFulfilledCB" : "onRejectedCB"
+        ](this.valueOnConclude);
+
+        // thenにより作成されたインスタンスのresolve(CBの結果を渡す)を実行する
+        this.reservedFuncs.resolveOfCreatedPromiseByThen(resultFromCB);
+      } catch (err) {
+        // CBの結果で、thenにより作成されたインスタンスのrejectを実行する
+        this.reservedFuncs.rejectOfCreatedPromiseByThen(err);
+      }
     };
 
     // executorに渡すresolve関数
@@ -28,7 +36,6 @@ class MyPromise {
       setConclusion("fulfilled", resolvedValue);
       runReservedCB("fulfilled");
     };
-
     // executorに渡すreject関数
     const reject = (rejectedValue) => {
       if (this.state !== "pending") return; // 既にconcludeされてたら何もしない
@@ -81,10 +88,16 @@ class MyPromise {
       return createMyPromise(onRejectedCB);
     }
     // then実行時、呼び出し元インスタンスがpendingだった場合reservedFuncsに登録しておく
-    this.reservedFuncs = {
-      onFulfilledCB,
-      onRejectedCB,
-    };
+    if (this.state === "pending") {
+      return new MyPromise((resolve, reject) => {
+        this.reservedFuncs = {
+          onFulfilledCB, // thenの第1引数
+          onRejectedCB, // thenの第2引数
+          resolveOfCreatedPromiseByThen: resolve, // new されたインスタンス内で定義されているresolve
+          rejectOfCreatedPromiseByThen: reject, // new されたインスタンス内で定義されているreject
+        };
+      });
+    }
   }
   // catch ==============================
   catch(onRejectedCB) { }
