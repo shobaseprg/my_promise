@@ -46,13 +46,20 @@ class MyPromise {
 
   // then ==============================
   then(onFulfilledCB, onRejectedCB) {
+    const createMyPromise = (callBack) => {
+      return new MyPromise((resolve) => {
+        const resultFromCB = callBack(this.valueOnConclude);
+        resolve(resultFromCB);
+      });
+    };
+
     // executorが同期関数でconcludeされた場合は、then実行時にstateが"fulfilled"または"rejected"になっている
     // その場合は、コールバックを実行する
     if (this.state === "fulfilled") {
-      onFulfilledCB(this.valueOnConclude);
+      return createMyPromise(onFulfilledCB);
     }
     if (this.state === "rejected") {
-      onRejectedCB(this.valueOnConclude);
+      return createMyPromise(onRejectedCB);
     }
     // then実行時、呼び出し元インスタンスがpendingだった場合reservedFuncsに登録しておく
     this.reservedFuncs = {
