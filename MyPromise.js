@@ -47,9 +47,18 @@ class MyPromise {
   // then ==============================
   then(onFulfilledCB, onRejectedCB) {
     const createMyPromise = (callBack) => {
-      return new MyPromise((resolve) => {
-        const resultFromCB = callBack(this.valueOnConclude);
-        resolve(resultFromCB);
+      return new MyPromise((resolve, reject) => {
+        queueMicrotask(() => {
+          // コールバックは必ずマイクロタスクキューにつまれる
+          try {
+            // 呼び出し元インスタンスでconcludeされた値を用いてcallbackを実行
+            const resultFromCB = callBack(this.valueOnConclude);
+            resolve(resultFromCB);
+          } catch (err) {
+            // rejectかつ第2CBが渡ってきてない場合は、rejectedにして次のthenメソッドの第2引数を呼び出す
+            reject(err);
+          }
+        });
       });
     };
 
