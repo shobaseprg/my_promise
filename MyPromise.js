@@ -53,7 +53,17 @@ class MyPromise {
           try {
             // 呼び出し元インスタンスでconcludeされた値を用いてcallbackを実行
             const resultFromCB = callBack(this.valueOnConclude);
-            resolve(resultFromCB);
+            // CBの返り値がMyPromiseインスタンスの場合
+            if (resultFromCB instanceof MyPromise) {
+              // そのMyPromiseインスタンスのthenにconcluderを預けて、conclude後実行してもらう
+              resultFromCB.then(
+                (v) => resolve(v),
+                (e) => reject(e)
+              );
+            } else {
+              // CBの結果でresolveします(rejectであっても第2引数が正しく実行されたら返すインスタンスはresolved)
+              resolve(resultFromCB);
+            }
           } catch (err) {
             // rejectかつ第2CBが渡ってきてない場合は、rejectedにして次のthenメソッドの第2引数を呼び出す
             reject(err);
