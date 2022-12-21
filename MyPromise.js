@@ -13,16 +13,27 @@ class MyPromise {
       this.valueOnConclude = valueOnConclude; // concludeされた値をセット
     };
 
+    // 予約されたCBを実行
+    const runReservedCB = (fate) => {
+      if (!this.reservedFuncs) return;
+      // fateに合わせてコールバックを実行する
+      this.reservedFuncs[
+        fate === "fulfilled" ? "onFulfilledCB" : "onRejectedCB"
+      ](this.valueOnConclude);
+    };
+
     // executorに渡すresolve関数
     const resolve = (resolvedValue) => {
       if (this.state !== "pending") return; // 既にconcludeされてたら何もしない
       setConclusion("fulfilled", resolvedValue);
+      runReservedCB("fulfilled");
     };
 
     // executorに渡すreject関数
     const reject = (rejectedValue) => {
       if (this.state !== "pending") return; // 既にconcludeされてたら何もしない
       setConclusion("rejected", rejectedValue);
+      runReservedCB("rejected");
     };
 
     // run executor
