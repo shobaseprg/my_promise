@@ -33,7 +33,16 @@ class MyPromise {
   }
 
   // then ==============================
-  then(onFulfilledCB, onRejectedCB) { }
+  then(onFulfilledCB, onRejectedCB) {
+    // executorが同期関数でconcludeされた場合は、then実行時にstateが"fulfilled"または"rejected"になっている
+    // その場合は、コールバックを実行する
+    if (this.state === "fulfilled") {
+      onFulfilledCB(this.valueOnConclude);
+    }
+    if (this.state === "rejected") {
+      onRejectedCB(this.valueOnConclude);
+    }
+  }
   // catch ==============================
   catch(onRejectedCB) { }
 }
