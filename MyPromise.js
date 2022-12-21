@@ -22,8 +22,21 @@ class MyPromise {
           fate === "fulfilled" ? "onFulfilledCB" : "onRejectedCB"
         ](this.valueOnConclude);
 
-        // thenにより作成されたインスタンスのresolve(CBの結果を渡す)を実行する
-        this.reservedFuncs.resolveOfCreatedPromiseByThen(resultFromCB);
+        if (resultFromCB instanceof MyPromise) {
+          // CBがMyPromiseインスタンスを返した場合
+          // 返されたpromiseのthenにconcluderを渡して、concludeしたら実行してもらう
+          resultFromCB.then(
+            (v) => {
+              this.reservedFuncs.resolveOfCreatedPromiseByThen(v);
+            },
+            (e) => {
+              this.reservedFuncs.rejectOfCreatedPromiseByThen(e);
+            }
+          );
+        } else {
+          // thenにより作成されたインスタンスのresolve(CBの結果を渡す)を実行する
+          this.reservedFuncs.resolveOfCreatedPromiseByThen(resultFromCB);
+        }
       } catch (err) {
         // CBの結果で、thenにより作成されたインスタンスのrejectを実行する
         this.reservedFuncs.rejectOfCreatedPromiseByThen(err);
