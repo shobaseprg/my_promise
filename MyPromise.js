@@ -131,4 +131,123 @@ class MyPromise {
   catch(onRejectedCB) {
     return this.then(null, onRejectedCB);
   }
+
+  // static method ==============================
+  static resolve(v) {
+    return new MyPromise((resolve) => {
+      resolve(v);
+    });
+  }
+
+  static reject(v) {
+    return new MyPromise((_, reject) => {
+      reject(v);
+    });
+  }
+
+  static race(promises) {
+    return new MyPromise((resolve, reject) => {
+      for (const promise of promises) {
+        let p = promise;
+        if (!(p instanceof MyPromise)) {
+          p = MyPromise.resolve(p);
+        }
+        // 後続のインスタンスがconcludeされても影響はない
+        p.then(
+          (v) => {
+            resolve(v);
+          },
+          (e) => {
+            reject(e);
+          }
+        );
+      }
+    });
+  }
+
+  static any(promises) {
+    return new MyPromise((resolve, reject) => {
+      let rejectedCount = 0;
+      for (const promise of promises) {
+        let p = promise;
+        if (!(p instanceof MyPromise)) {
+          p = MyPromise.resolve(p);
+        }
+        p.then(
+          (v) => {
+            resolve(v);
+            // 後続のインスタンスがconcludeされても影響はない
+          },
+          () => {
+            rejectedCount++;
+            // すべて渡されたインスタンスがrejectされた場合のみ、rejectする
+            if (rejectedCount >= promises.length) {
+              reject("AggregateError: All promises were rejected");
+            }
+          }
+        );
+      }
+    });
+  }
+
+  static all(promises) {
+    return new MyPromise((resolve, reject) => {
+      const resolvedValues = Array(promises.length);
+      let fulfilledCount = 0;
+      for (let i = 0; i < promises.length; i++) {
+        let p = promises[i];
+        if (!(p instanceof MyPromise)) {
+          p = MyPromise.resolve(p);
+        }
+        p.then(
+          (v) => {
+            resolvedValues[i] = v;
+            // 値を配列で格納しておく順番は引数で渡された順番（解決順ではない）
+            fulfilledCount++;
+            // すべてresolveされたらresolvedValuesでresolveする
+            if (fulfilledCount >= promises.length) {
+              resolve(resolvedValues);
+            }
+          },
+          (e) => {
+            reject(e);
+          }
+        );
+      }
+    });
+  }
+
+  static allSettled(promises) {
+    return new MyPromise((resolve, reject) => {
+      let concludedCount = 0;
+      const results = Array(promises.length);
+
+      function settle(i, v, isResolve) {
+        // concludeによってオブジェクトを返す
+        results[i] = isResolve
+          ? { status: "fulfilled", value: v }
+          : { status: "rejected", reason: v };
+        concludedCount++;
+        // すべてconcludeされたらresolve
+        if (concludedCount >= promises.length) {
+          resolve(results);
+        }
+      }
+
+      for (let i = 0; i < promises.length; i++) {
+        let p = promises[i];
+        if (!(p instanceof MyPromise)) {
+          p = MyPromise.resolve(p);
+        }
+        p.then(
+          (v) => {
+            settle(i, v, true);
+          },
+          (e) => {
+            settle(i, e, false);
+          }
+        );
+      }
+    });
+  }
 }
