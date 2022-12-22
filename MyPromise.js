@@ -69,6 +69,18 @@ class MyPromise {
 
   // then ==============================
   then(onFulfilledCB, onRejectedCB) {
+    if (typeof onFulfilledCB !== "function") {
+      //CBが関数でなければ値をそのまま返す関数に変換
+      onFulfilledCB = (v) => v;
+    }
+
+    if (typeof onRejectedCB !== "function") {
+      //CBが関数でない or 渡ってきていない場合に例外を投げる関数に変換
+      onRejectedCB = (err) => {
+        throw err;
+      };
+    }
+
     const createMyPromise = (callBack) => {
       return new MyPromise((resolve, reject) => {
         queueMicrotask(() => {
