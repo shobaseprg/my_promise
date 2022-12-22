@@ -128,5 +128,7 @@ class MyPromise {
     }
   }
   // catch ==============================
-  catch(onRejectedCB) { }
+  catch(onRejectedCB) {
+    return this.then(null, onRejectedCB);
+  }
 }
