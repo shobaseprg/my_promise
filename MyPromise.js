@@ -1,7 +1,7 @@
 class MyPromise {
   state = "pending"; // インスタンスの初期状態はpending
   valueOnConclude = null; // concluderに渡された値を格納
-  reservedFuncs = null; // thenで実行予約された関数群
+  reservedFuncs = []; // thenで実行予約された関数群
 
   // constructor ==============================
   constructor(executor) {
@@ -15,31 +15,34 @@ class MyPromise {
 
     // 予約されたCBを実行
     const runReservedCB = (fate) => {
+      // executorが同期の場合は、thenより先に走るのでreservedFuncsは空のためループしない
       if (!this.reservedFuncs) return;
-      try {
-        // fateに合わせてコールバックを実行する
-        const resultFromCB = this.reservedFuncs[
-          fate === "fulfilled" ? "onFulfilledCB" : "onRejectedCB"
-        ](this.valueOnConclude);
+      for (const reserved of this.reservedFuncs) {
+        try {
+          // fateに合わせてコールバックを実行する
+          const resultFromCB = reserved[
+            fate === "fulfilled" ? "onFulfilledCB" : "onRejectedCB"
+          ](this.valueOnConclude);
 
-        if (resultFromCB instanceof MyPromise) {
-          // CBがMyPromiseインスタンスを返した場合
-          // 返されたpromiseのthenにconcluderを渡して、concludeしたら実行してもらう
-          resultFromCB.then(
-            (v) => {
-              this.reservedFuncs.resolveOfCreatedPromiseByThen(v);
-            },
-            (e) => {
-              this.reservedFuncs.rejectOfCreatedPromiseByThen(e);
-            }
-          );
-        } else {
-          // thenにより作成されたインスタンスのresolve(CBの結果を渡す)を実行する
-          this.reservedFuncs.resolveOfCreatedPromiseByThen(resultFromCB);
+          if (resultFromCB instanceof MyPromise) {
+            // CBがMyPromiseインスタンスを返した場合
+            // 返されたpromiseのthenにconcluderを渡して、concludeしたら実行してもらう
+            resultFromCB.then(
+              (v) => {
+                reserved.resolveOfCreatedPromiseByThen(v);
+              },
+              (e) => {
+                reserved.rejectOfCreatedPromiseByThen(e);
+              }
+            );
+          } else {
+            // thenにより作成されたインスタンスのresolve(CBの結果を渡す)を実行する
+            reserved.resolveOfCreatedPromiseByThen(resultFromCB);
+          }
+        } catch (err) {
+          // CBの結果で、thenにより作成されたインスタンスのrejectを実行する
+          reserved.rejectOfCreatedPromiseByThen(err);
         }
-      } catch (err) {
-        // CBの結果で、thenにより作成されたインスタンスのrejectを実行する
-        this.reservedFuncs.rejectOfCreatedPromiseByThen(err);
       }
     };
 
@@ -103,12 +106,12 @@ class MyPromise {
     // then実行時、呼び出し元インスタンスがpendingだった場合reservedFuncsに登録しておく
     if (this.state === "pending") {
       return new MyPromise((resolve, reject) => {
-        this.reservedFuncs = {
+        this.reservedFuncs.push({
           onFulfilledCB, // thenの第1引数
           onRejectedCB, // thenの第2引数
           resolveOfCreatedPromiseByThen: resolve, // new されたインスタンス内で定義されているresolve
           rejectOfCreatedPromiseByThen: reject, // new されたインスタンス内で定義されているreject
-        };
+        });
       });
     }
   }
